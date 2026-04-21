@@ -2,321 +2,1196 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ACTAM | Acoustic Logic Audio Engine</title>
-
+  <title>ACTAM PRO | Audio Suite</title>
   <style>
-    /* ── CORE DESIGN SYSTEM ──────────────────────────────────────────────── */
+    /* ════════════════════════════════════════════════════
+       ROOT TOKENS  — change these to retheme everything
+       ════════════════════════════════════════════════════ */
     :root {
-      --bg-dark: #0a0a0f;
-      --bg-panel: #161625;
-      --accent: #00ffcc;
-      --accent-glow: rgba(0, 255, 204, 0.3);
-      --text-main: #e0e0e0;
-      --text-dim: #888;
+      --bg:        #080810;
+      --panel:     #0f0f18;
+      --border:    #252535;
+      --accent:    #ff4455;
+      --lcd:       #33ff99;
+      --lcd-bg:    #021a0a;
+      --knob:      #1e1e2e;
+      --white-key: #f0f0f0;
+      --black-key: #181828;
+      --active-w:  #aab0ff;
+      --active-b:  #4455cc;
+      --glow:      rgba(255,68,85,0.45);
+      --font:      'Segoe UI', system-ui, sans-serif;
     }
 
+    /* ── Base ──────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+    html, body { width: 100%; height: 100%; overflow: hidden; }
     body {
-      min-height: 100vh;
-      background: var(--bg-dark);
-      font-family: 'Inter', -apple-system, sans-serif;
-      color: var(--text-main);
-      overflow: hidden;
+      background: var(--bg);
+      color: #ccc;
+      font-family: var(--font);
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    /* ── NAVIGATION ENGINE ───────────────────────────────────────────────── */
+    /* ════════════════════════════════════════════════════
+       SCREEN SYSTEM  — splash / menu / instrument
+       ════════════════════════════════════════════════════ */
     .screen {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      transition: opacity .55s ease, transform .55s ease;
+      z-index: 50;
+    }
+    .screen.out {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96);
+    }
+
+    /* ── SPLASH ─────────────────────────────────────────── */
+    #splash { background: #000; z-index: 100; }
+
+    #particles {
+      position: absolute; inset: 0;
+      pointer-events: none;
+    }
+
+    .splash-logo {
+      position: relative;
+      display: flex; gap: 6px;
+      margin-bottom: 18px;
+    }
+    .splash-logo span {
+      font-size: 88px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      color: #fff;
+      text-shadow: 0 0 30px var(--accent), 0 0 60px var(--accent);
+      opacity: 0;
+      transform: translateY(30px) scale(.85);
+      transition: opacity .45s ease, transform .45s ease;
+    }
+    .splash-logo span.vis {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .splash-sub {
+      font-size: 13px;
+      letter-spacing: 7px;
+      color: #666;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity .6s ease .3s;
+    }
+    .splash-sub.vis { opacity: 1; }
+
+    /* ── MENU ───────────────────────────────────────────── */
+    #menu { background: linear-gradient(160deg, #07070f 0%, #0e0e1a 100%); }
+
+    .menu-title {
+      font-size: 11px;
+      letter-spacing: 6px;
+      color: #444;
+      text-transform: uppercase;
+      margin-bottom: 48px;
+    }
+
+    .cards {
+      display: flex;
+      gap: 32px;
+    }
+
+    .card {
+      position: relative;
+      width: 240px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px 24px 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 30%, rgba(255,255,255,.03), transparent 70%);
+      pointer-events: none;
+    }
+    .card:hover {
+      transform: translateY(-6px) scale(1.02);
+      border-color: var(--accent);
+      box-shadow: 0 0 40px var(--glow), 0 20px 60px rgba(0,0,0,.7);
+    }
+    .card:active { transform: translateY(-2px) scale(1.01); }
+
+    .card-icon {
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    /* Mini piano keys in card */
+    .mini-keys { display: flex; position: relative; height: 70px; }
+    .mk-w {
+      width: 16px; height: 70px;
+      background: #e8e8e8;
+      border: 1px solid #aaa;
+      border-radius: 0 0 3px 3px;
+    }
+    .mk-w:first-child { border-radius: 0 0 3px 0; }
+    .mk-b {
+      width: 10px; height: 42px;
+      background: #1a1a1a;
       position: absolute;
-      width: 100%;
-      height: 100%;
+      border-radius: 0 0 3px 3px;
+      z-index: 2;
+    }
+    /* Guitar strings */
+    .guitar-strings {
+      display: flex; flex-direction: column;
+      gap: 7px; padding: 0 10px; width: 160px;
+    }
+    .gs {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #aaa 15%, #888 85%, transparent);
+      border-radius: 2px;
+    }
+    .gs:nth-child(1) { height: 1px; opacity: .7; }
+    .gs:nth-child(2) { height: 1px; opacity: .8; }
+    .gs:nth-child(6) { height: 4px; background: linear-gradient(90deg, transparent, #555 15%, #444 85%, transparent); }
+    .gs:nth-child(5) { height: 3px; }
+
+    .card-name {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: #ddd;
+      margin-bottom: 6px;
+    }
+    .card-sub {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #555;
+      text-transform: uppercase;
+    }
+    .card-hot { color: var(--accent); font-size: 10px; margin-top: 10px; }
+
+    /* ════════════════════════════════════════════════════
+       SYNTH CHASSIS  (always in DOM, shown when active)
+       ════════════════════════════════════════════════════ */
+
+    /* Disable all interaction while splash/menu overlay is visible */
+    body.locked .synth-frame { pointer-events: none; opacity: .15; filter: blur(2px); }
+
+    .synth-frame {
+      background: #1a1207;   /* dark mahogany wood frame */
+      padding: 14px;
+      border-radius: 14px;
+      border: 3px solid #120d05;
+      box-shadow: 0 40px 100px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.05);
+      transition: opacity .4s, filter .4s;
+    }
+
+    .main-panel {
+      background: linear-gradient(180deg, #111118 0%, #0a0a12 100%);
+      padding: 22px 22px 16px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ── Header row ─────────────────────────────────────── */
+    .panel-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .logo {
+      font-weight: 900;
+      font-size: 20px;
+      letter-spacing: 4px;
+      color: #333;
+      white-space: nowrap;
+    }
+    .logo span { color: var(--accent); }
+
+    /* LCD display — shows note/chord name */
+    .lcd-wrap {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 1;
     }
-
-    .hidden {
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(0.95) translateY(20px);
-      z-index: 0;
+    .lcd {
+      background: var(--lcd-bg);
+      color: var(--lcd);
+      font-family: 'Courier New', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      padding: 8px 28px;
+      border-radius: 4px;
+      border: 1.5px inset #1a3520;
+      text-shadow: 0 0 8px var(--lcd);
+      min-width: 220px;
+      text-align: center;
+      transition: color .1s;
+      user-select: none;
     }
-
-    /* ── PAGE 1: SPLASH (ACTAM) ─────────────────────────────────────────── */
-    #splash-screen { background: radial-gradient(circle at center, #1c1c30 0%, var(--bg-dark) 100%); }
-
-    .logo-box { text-align: center; }
-
-    .logo-text {
-      font-size: clamp(60px, 10vw, 100px);
-      font-weight: 900;
-      letter-spacing: 20px;
-      background: linear-gradient(135deg, var(--accent), #7070ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 0 15px var(--accent-glow));
-      animation: tracking-expand 1.2s ease-out both;
-    }
-
-    .tagline {
-      font-size: 12px;
-      color: var(--text-dim);
-      letter-spacing: 6px;
+    .lcd.chord { color: #55ffcc; text-shadow: 0 0 10px #55ffcc; }
+    .lcd-sub {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: #2a5a3a;
+      margin-top: 3px;
       text-transform: uppercase;
-      margin-top: 15px;
-      opacity: 0;
-      animation: fade-in 1s ease 0.8s forwards;
     }
 
-    @keyframes tracking-expand {
-      0% { letter-spacing: -0.5em; opacity: 0; filter: blur(10px); }
-      100% { opacity: 1; filter: blur(0); }
-    }
-
-    /* ── PAGE 2: MENU (INSTRUMENT SELECTION) ────────────────────────────── */
-    .menu-wrap { width: 90%; max-width: 900px; }
-    .header-line { border-left: 3px solid var(--accent); padding-left: 20px; margin-bottom: 40px; }
-    .header-line h2 { font-size: 28px; letter-spacing: 1px; }
-
-    .vst-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 25px;
-    }
-
-    .vst-card {
-      background: var(--bg-panel);
+    .eject-btn {
+      background: none;
       border: 1px solid #2a2a3a;
-      border-radius: 16px;
-      padding: 30px;
+      color: #444;
+      padding: 6px 14px;
+      border-radius: 4px;
       cursor: pointer;
-      transition: 0.3s;
-      position: relative;
+      font-size: 10px;
+      letter-spacing: 2px;
+      transition: border-color .2s, color .2s;
+    }
+    .eject-btn:hover { border-color: var(--accent); color: #999; }
+
+    /* ── FX Row ─────────────────────────────────────────── */
+    .fx-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
     }
 
-    .vst-card:hover {
-      border-color: var(--accent);
-      transform: translateY(-8px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    .module {
+      background: #0d0d18;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      min-width: 110px;
     }
 
-    .vst-card h3 { color: var(--accent); margin-bottom: 10px; font-size: 20px; }
-    .vst-card p { color: var(--text-dim); font-size: 14px; line-height: 1.5; }
-
-    .status-badge {
-      position: absolute; top: 20px; right: 20px;
-      font-size: 10px; font-weight: bold; background: var(--accent);
-      color: black; padding: 3px 8px; border-radius: 4px;
-    }
-
-    /* ── PAGE 3: PIANO INTERFACE ────────────────────────────────────────── */
-    .piano-container { display: flex; flex-direction: column; align-items: center; }
-
-    .back-nav {
-      align-self: flex-start;
-      background: transparent;
-      border: 1px solid #333;
-      color: var(--text-dim);
-      padding: 8px 20px;
-      border-radius: 30px;
+    .module-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       cursor: pointer;
-      margin-bottom: 30px;
-      transition: 0.2s;
     }
-    .back-nav:hover { border-color: var(--accent); color: white; }
-
-    .piano-shell {
+    /* LED power indicator */
+    .led {
+      width: 8px; height: 8px;
+      border-radius: 50%;
       background: #222;
-      border-radius: 24px;
-      padding: 35px;
-      box-shadow: 0 40px 80px rgba(0,0,0,0.7);
-      border: 1px solid #333;
+      box-shadow: none;
+      transition: background .2s, box-shadow .2s;
+      flex-shrink: 0;
+    }
+    .led.on {
+      background: #44ff77;
+      box-shadow: 0 0 6px #44ff77, 0 0 14px #22cc55;
+    }
+    .module-label {
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: #555;
+      text-transform: uppercase;
+    }
+    .module.active .module-label { color: #888; }
+
+    .knobs-row { display: flex; gap: 16px; }
+
+    .knob-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .knob {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #2e2e45, var(--knob));
+      border: 2px solid #2a2a3a;
+      position: relative;
+      cursor: ns-resize;
+      transition: border-color .2s;
+    }
+    .knob::after {
+      /* the little indicator dot on the knob face */
+      content: '';
+      position: absolute;
+      top: 5px; left: 50%;
+      width: 3px; height: 10px;
+      background: #888;
+      transform: translateX(-50%) rotate(var(--angle, -135deg));
+      transform-origin: 50% 15px;
+      border-radius: 2px;
+    }
+    .module.active .knob { cursor: ns-resize; border-color: #3a3a5a; }
+    .module:not(.active) .knob { opacity: .35; cursor: not-allowed; }
+    .knob-label { font-size: 8px; letter-spacing: 1px; color: #444; }
+
+    /* ── Lower Controls Row ─────────────────────────────── */
+    .controls-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
     }
 
-    .key-bed { position: relative; display: flex; gap: 5px; }
-
-    .white-key {
-      position: relative; width: 65px; height: 220px; background: #eee;
-      border-radius: 0 0 10px 10px; cursor: pointer;
-      display: flex; align-items: flex-end; justify-content: center;
-      padding-bottom: 15px; transition: 0.1s;
+    /* Pitch wheel + Tune box */
+    .left-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #09090f;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
     }
-    .white-key.active { background: #bbb; transform: scaleY(0.98); transform-origin: top; }
+    .left-panel-row { display: flex; gap: 14px; align-items: flex-end; }
 
-    .black-key {
-      position: absolute; top: 0; width: 42px; height: 135px;
-      background: linear-gradient(180deg, #444 0%, #111 100%);
-      border-radius: 0 0 6px 6px; z-index: 10; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 5px 10px rgba(0,0,0,0.5); transition: 0.1s;
+    .wheel-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
     }
-    .black-key.active { background: #555; transform: scaleY(0.96); transform-origin: top; }
+    .wheel-label { font-size: 8px; letter-spacing: 2px; color: #444; }
 
-    .key-label { font-weight: 700; color: #666; font-size: 14px; pointer-events: none; }
-    .black-key .key-label { color: #888; }
-
-    .engine-status {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
-      justify-content: flex-end; font-size: 12px; color: var(--text-dim);
+    .pitch-track {
+      width: 28px; height: 110px;
+      background: #050510;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      position: relative;
+      overflow: hidden;
     }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: #444; }
-    .dot.on { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .pitch-handle {
+      position: absolute;
+      left: 0; right: 0;
+      height: 36px;
+      background: linear-gradient(180deg, #3a3a5a 0%, #1e1e2e 100%);
+      border-top: 2px solid #5a5a8a;
+      border-bottom: 2px solid #111;
+      border-radius: 3px;
+      top: 37px;   /* center = (110-36)/2 */
+      transition: top .08s ease;
+    }
 
-    @keyframes fade-in { to { opacity: 1; } }
+    .tune-knob-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .tune-knob {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #28283a, #111122);
+      border: 2px solid #2a2a44;
+      position: relative;
+      cursor: ns-resize;
+    }
+    .tune-knob::after {
+      content: '';
+      position: absolute;
+      top: 4px; left: 50%;
+      width: 3px; height: 9px;
+      background: var(--accent);
+      transform: translateX(-50%) rotate(var(--angle, 0deg));
+      transform-origin: 50% 13px;
+      border-radius: 2px;
+    }
+
+    /* ── Keyboard Bed ────────────────────────────────────── */
+    .keybed-wrap { flex: 1; overflow-x: auto; overflow-y: visible; padding-bottom: 2px; }
+    .keybed {
+      display: inline-flex;
+      position: relative;
+      background: #09090f;
+      border: 1px solid var(--border);
+      border-radius: 4px 4px 8px 8px;
+      padding: 4px 4px 0;
+      gap: 2px;
+    }
+
+    /* White key */
+    .wk {
+      position: relative;
+      width: 36px; height: 155px;
+      background: var(--white-key);
+      border: 1px solid #ccc;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      cursor: pointer;
+      display: flex; flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 8px;
+      gap: 2px;
+      transition: background .06s, transform .06s;
+      user-select: none;
+    }
+    .wk:active, .wk.active {
+      background: var(--active-w);
+      transform: scaleY(.985);
+      transform-origin: top center;
+    }
+    .wk .kb-hint {
+      font-size: 10px; font-weight: 700;
+      color: #666;
+    }
+    .wk .note-hint {
+      font-size: 7px; letter-spacing: .5px;
+      color: #aaa;
+    }
+
+    /* Black key */
+    .bk {
+      position: absolute;
+      width: 24px; height: 96px;
+      background: linear-gradient(180deg, #2e2e3a 0%, var(--black-key) 100%);
+      border-radius: 0 0 5px 5px;
+      cursor: pointer;
+      z-index: 10;
+      display: flex; flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-top: 4px;
+      gap: 2px;
+      transition: background .06s;
+      user-select: none;
+      box-shadow: 0 4px 8px rgba(0,0,0,.6);
+    }
+    .bk:active, .bk.active {
+      background: linear-gradient(180deg, #5060cc 0%, var(--active-b) 100%);
+    }
+    .bk .kb-hint {
+      font-size: 9px; font-weight: 700;
+      color: #aaa;
+    }
+    .bk .note-hint {
+      font-size: 6px;
+      color: #666;
+    }
+
+    /* Connection status dot */
+    .ws-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #333; transition: background .3s, box-shadow .3s;
+      display: inline-block; margin-left: 8px;
+    }
+    .ws-dot.ok  { background: #44ff77; box-shadow: 0 0 6px #44ff77; }
+    .ws-dot.err { background: #ff4444; box-shadow: 0 0 6px #ff4444; }
   </style>
 </head>
-<body>
+<body class="locked">
 
-  <section id="splash-screen" class="screen">
-    <div class="logo-box">
-      <h1 class="logo-text">ACTAM</h1>
-      <p class="tagline">Acoustic Engineering Suite</p>
+  <!-- ══════════════════════════════════════════
+       SCREEN 1 : SPLASH
+       ══════════════════════════════════════════ -->
+  <div id="splash" class="screen">
+    <canvas id="particles"></canvas>
+    <div class="splash-logo">
+      <span>A</span><span>C</span><span>T</span><span>A</span><span>M</span>
     </div>
-  </section>
+    <div class="splash-sub">PRO AUDIO SUITE</div>
+  </div>
 
-  <section id="menu-screen" class="screen hidden">
-    <div class="menu-wrap">
-      <div class="header-line">
-        <h2>Instrument Library</h2>
-        <p style="color:var(--text-dim)">Select an engine to initialize</p>
-      </div>
-      <div class="vst-grid">
-        <div class="vst-card" onclick="changeScreen('piano-screen')">
-          <span class="status-badge">READY</span>
-          <h3>Grand Piano v1</h3>
-          <p>Multi-harmonic additive synthesis with natural decay modeling.</p>
-        </div>
-        <div class="vst-card" style="opacity: 0.3; cursor: not-allowed;">
-          <h3>Cremona Strings</h3>
-          <p>Physical modeling of resonant wood bodies. (Locked)</p>
-        </div>
-      </div>
-    </div>
-  </section>
+  <!-- ══════════════════════════════════════════
+       SCREEN 2 : INSTRUMENT MENU
+       ══════════════════════════════════════════ -->
+  <div id="menu" class="screen out">
+    <p class="menu-title">Select Instrument</p>
+    <div class="cards">
 
-  <section id="piano-screen" class="screen hidden">
-    <div class="piano-container">
-      <button class="back-nav" onclick="changeScreen('menu-screen')">← Library</button>
-
-      <div class="piano-shell">
-        <div class="engine-status">
-          <span id="stat-text">Engine Offline</span>
-          <div id="stat-dot" class="dot"></div>
+      <!-- Piano Card -->
+      <div class="card" id="card-piano" onclick="enterInstrument('piano')">
+        <div class="card-icon">
+          <div class="mini-keys" id="miniPiano"></div>
         </div>
-        <div class="key-bed" id="keyBed"></div>
+        <div class="card-name">GRAND PIANO</div>
+        <div class="card-sub">Steinway Concert Model</div>
+        <div class="card-hot">♩ Additive Synthesis</div>
       </div>
 
-      <p style="margin-top: 30px; color: var(--text-dim); font-size: 12px; letter-spacing: 2px;">
-        MAPPED: W E R T Y U I (White) | 3 4 6 7 8 (Black)
-      </p>
+      <!-- Guitar Card -->
+      <div class="card" id="card-guitar" onclick="enterInstrument('guitar')">
+        <div class="card-icon">
+          <div class="guitar-strings">
+            <div class="gs"></div><div class="gs"></div><div class="gs"></div>
+            <div class="gs"></div><div class="gs"></div><div class="gs"></div>
+          </div>
+        </div>
+        <div class="card-name">FLAMENCO GUITAR</div>
+        <div class="card-sub">Nylon String Classical</div>
+        <div class="card-hot">♩ Karplus-Strong Model</div>
+      </div>
+
     </div>
-  </section>
+  </div>
 
-  <script>
-    // ── APP STATE & NAVIGATION ───────────────────────────────────────────
-    let currentScreen = 'splash-screen';
+  <!-- ══════════════════════════════════════════
+       SYNTH CHASSIS  (always in DOM)
+       ══════════════════════════════════════════ -->
+  <div class="synth-frame">
+    <div class="main-panel">
 
-    function changeScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-      document.getElementById(id).classList.remove('hidden');
-      currentScreen = id;
+      <!-- Header -->
+      <div class="panel-top">
+        <div class="logo">ACTAM <span>PRO</span> <span class="ws-dot" id="wsDot"></span></div>
+        <div class="lcd-wrap">
+          <div class="lcd" id="lcd">READY</div>
+          <div class="lcd-sub" id="lcdSub">—</div>
+        </div>
+        <button class="eject-btn" onclick="goMenu()">◀ BACK</button>
+      </div>
 
-      // Safety: clear held keys when leaving piano
-      if (id !== 'piano-screen' && typeof heldKeys !== 'undefined') {
-        heldKeys.clear();
-        Object.values(keyElements).forEach(el => el.classList.remove('active'));
+      <!-- FX Modules -->
+      <div class="fx-row">
+
+        <!-- TREMOLO -->
+        <div class="module" id="mod-tremolo">
+          <div class="module-header" onclick="toggleFX('tremolo')">
+            <div class="led" id="led-tremolo"></div>
+            <span class="module-label">Tremolo</span>
+          </div>
+          <div class="knobs-row">
+            <div class="knob-group">
+              <div class="knob" id="knob-tremolo_rate"  data-min="0.1" data-max="10" data-val="5" data-param="tremolo_rate"></div>
+              <span class="knob-label">RATE</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-tremolo_depth" data-min="0"   data-max="1"  data-val="0.5" data-param="tremolo_depth"></div>
+              <span class="knob-label">DEPTH</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DELAY -->
+        <div class="module" id="mod-delay">
+          <div class="module-header" onclick="toggleFX('delay')">
+            <div class="led" id="led-delay"></div>
+            <span class="module-label">Delay</span>
+          </div>
+          <div class="knobs-row">
+            <div class="knob-group">
+              <div class="knob" id="knob-delay_time"     data-min="0.05" data-max="1" data-val="0.33" data-param="delay_time"></div>
+              <span class="knob-label">TIME</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-delay_feedback" data-min="0" data-max="0.9" data-val="0.45" data-param="delay_feedback"></div>
+              <span class="knob-label">FDBK</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-delay_level"    data-min="0" data-max="1"   data-val="0.5"  data-param="delay_level"></div>
+              <span class="knob-label">MIX</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- REVERB -->
+        <div class="module" id="mod-reverb">
+          <div class="module-header" onclick="toggleFX('reverb')">
+            <div class="led" id="led-reverb"></div>
+            <span class="module-label">Reverb</span>
+          </div>
+          <div class="knobs-row">
+            <div class="knob-group">
+              <div class="knob" id="knob-reverb_mix" data-min="0" data-max="1" data-val="0.4" data-param="reverb_mix"></div>
+              <span class="knob-label">MIX</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-rev_fb" data-min="0.5" data-max="0.95" data-val="0.84" data-param="reverb_feedback"></div>
+              <span class="knob-label">SIZE</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /fx-row -->
+
+      <!-- Lower Controls -->
+      <div class="controls-row">
+
+        <!-- Pitch Wheel + Tune Knob -->
+        <div class="left-panel">
+          <div class="left-panel-row">
+            <!-- Pitch Wheel (arrow keys) -->
+            <div class="wheel-group">
+              <div class="pitch-track"><div class="pitch-handle" id="pitchHandle"></div></div>
+              <span class="wheel-label">PITCH</span>
+            </div>
+            <!-- Tune Knob (scroll wheel) -->
+            <div class="tune-knob-wrap">
+              <div class="tune-knob" id="tuneKnob"></div>
+              <span class="wheel-label">TUNE</span>
+            </div>
+          </div>
+          <div style="font-size:8px;color:#333;letter-spacing:1.5px;text-align:center">
+            ↑↓ PITCH &nbsp; SCROLL TUNE
+          </div>
+        </div>
+
+        <!-- Piano Keyboard -->
+        <div class="keybed-wrap">
+          <div class="keybed" id="keyBed"></div>
+        </div>
+
+      </div><!-- /controls-row -->
+
+    </div><!-- /main-panel -->
+  </div><!-- /synth-frame -->
+
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   SPLASH  — particle canvas + staggered letter reveal
+   ═══════════════════════════════════════════════════════════════ */
+
+(function initSplash() {
+  const canvas = document.getElementById('particles');
+  const ctx    = canvas.getContext('2d');
+
+  // Resize canvas to fill screen
+  function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Each particle drifts slowly upward with horizontal wander
+  const DOTS = Array.from({ length: 90 }, () => ({
+    x:    Math.random() * innerWidth,
+    y:    Math.random() * innerHeight,
+    r:    Math.random() * 1.6 + 0.4,
+    vy:   -(Math.random() * 0.4 + 0.1),    // upward drift
+    vx:   (Math.random() - 0.5) * 0.2,     // side wander
+    a:    Math.random() * 0.5 + 0.1,        // base alpha
+    hue:  Math.random() > 0.7 ? 340 : 220, // mostly red/blue
+  }));
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    DOTS.forEach(d => {
+      d.x = (d.x + d.vx + canvas.width)  % canvas.width;
+      d.y = (d.y + d.vy + canvas.height) % canvas.height;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${d.hue},80%,70%,${d.a})`;
+      ctx.fill();
+    });
+  }
+
+  let raf;
+  function loop() { drawParticles(); raf = requestAnimationFrame(loop); }
+  loop();
+
+  // Staggered letter reveal
+  const letters = document.querySelectorAll('.splash-logo span');
+  letters.forEach((l, i) => setTimeout(() => l.classList.add('vis'), 500 + i * 130));
+
+  const sub = document.querySelector('.splash-sub');
+  setTimeout(() => sub.classList.add('vis'), 1400);
+
+  // After the logo has settled, fade out the splash and show menu
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('out');
+    document.getElementById('menu').classList.remove('out');
+    cancelAnimationFrame(raf);   // stop the particle loop to save CPU
+  }, 3200);
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN NAVIGATION
+   ═══════════════════════════════════════════════════════════════ */
+
+let isPlayable = false;   // gates all keyboard / mouse note events
+
+function goMenu() {
+  // Return to instrument selection; stop all sounding notes first
+  releaseAllNotes();
+  document.getElementById('menu').classList.remove('out');
+  document.body.classList.add('locked');
+  isPlayable = false;
+  // Switch server back to piano as a safe default
+  wsSend({ type: 'switch', vst: 'piano' });
+}
+
+function enterInstrument(vst) {
+  // User picked an instrument — hide the menu, unlock the synth
+  document.getElementById('menu').classList.add('out');
+  document.body.classList.remove('locked');
+  document.getElementById('lcd').textContent = vst.toUpperCase();
+  document.getElementById('lcdSub').textContent = vst === 'piano' ? 'Grand Piano' : 'Flamenco Guitar';
+  wsSend({ type: 'switch', vst });
+  isPlayable = true;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MINI PIANO  (decorative, on the menu card)
+   ═══════════════════════════════════════════════════════════════ */
+
+(function buildMiniPiano() {
+  const bed = document.getElementById('miniPiano');
+  // Show one octave: C D E F G A B
+  const pattern = [false, true, false, true, false, false, true, false, true, false, true, false];
+  let wCount = 0;
+  for (let i = 0; i < 12; i++) {
+    const isBlack = pattern[i];
+    const el      = document.createElement('div');
+    if (!isBlack) {
+      el.className = 'mk-w';
+      bed.appendChild(el);
+      wCount++;
+    } else {
+      el.className = 'mk-b';
+      el.style.cssText = `left:${wCount * 16 - 5}px; top:0; position:absolute;`;
+      bed.appendChild(el);
+    }
+  }
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   KEYBOARD LAYOUT DEFINITION
+   Keys cover C3–E5 (MIDI 48–76), a comfortable playing range.
+   ═══════════════════════════════════════════════════════════════ */
+
+// Each entry: { type, note, midi, kbd }
+// 'kbd' is the laptop key that triggers this note.
+const LAYOUT = [
+  // ── Octave 3  (bottom keyboard row) ────────────────────────
+  { type:'white', note:'C3',  midi:48, kbd:'Z' },
+  { type:'black', note:'C#3', midi:49, kbd:'S' },
+  { type:'white', note:'D3',  midi:50, kbd:'X' },
+  { type:'black', note:'D#3', midi:51, kbd:'D' },
+  { type:'white', note:'E3',  midi:52, kbd:'C' },
+  { type:'white', note:'F3',  midi:53, kbd:'V' },
+  { type:'black', note:'F#3', midi:54, kbd:'G' },
+  { type:'white', note:'G3',  midi:55, kbd:'B' },
+  { type:'black', note:'G#3', midi:56, kbd:'H' },
+  { type:'white', note:'A3',  midi:57, kbd:'N' },
+  { type:'black', note:'A#3', midi:58, kbd:'J' },
+  { type:'white', note:'B3',  midi:59, kbd:'M' },
+  // ── Octave 4  (QWERTY row) ─────────────────────────────────
+  { type:'white', note:'C4',  midi:60, kbd:'Q' },
+  { type:'black', note:'C#4', midi:61, kbd:'2' },
+  { type:'white', note:'D4',  midi:62, kbd:'W' },
+  { type:'black', note:'D#4', midi:63, kbd:'3' },
+  { type:'white', note:'E4',  midi:64, kbd:'E' },
+  { type:'white', note:'F4',  midi:65, kbd:'R' },
+  { type:'black', note:'F#4', midi:66, kbd:'5' },
+  { type:'white', note:'G4',  midi:67, kbd:'T' },
+  { type:'black', note:'G#4', midi:68, kbd:'6' },
+  { type:'white', note:'A4',  midi:69, kbd:'Y' },
+  { type:'black', note:'A#4', midi:70, kbd:'7' },
+  { type:'white', note:'B4',  midi:71, kbd:'U' },
+  // ── Octave 5  (partial) ────────────────────────────────────
+  { type:'white', note:'C5',  midi:72, kbd:'I' },
+  { type:'black', note:'C#5', midi:73, kbd:'9' },
+  { type:'white', note:'D5',  midi:74, kbd:'O' },
+  { type:'black', note:'D#5', midi:75, kbd:'0' },
+  { type:'white', note:'E5',  midi:76, kbd:'P' },
+];
+
+// Equal-temperament: MIDI 69 = A4 = 440 Hz
+function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+// Reverse lookup: keyboard letter → LAYOUT entry
+const kbdMap = {};
+LAYOUT.forEach(d => { kbdMap[d.kbd.toLowerCase()] = d; });
+
+// DOM node lookup: midi number → element
+const keyElems = {};
+
+
+/* ═══════════════════════════════════════════════════════════════
+   BUILD THE VISUAL KEYBOARD
+   White keys are flex children; black keys are position:absolute.
+   ═══════════════════════════════════════════════════════════════ */
+
+(function buildKeyboard() {
+  const bed = document.getElementById('keyBed');
+
+  // First pass: create all white keys in order
+  LAYOUT.filter(d => d.type === 'white').forEach(def => {
+    const el = document.createElement('div');
+    el.className   = 'wk';
+    el.dataset.midi = def.midi;
+
+    const kh = document.createElement('span'); kh.className = 'kb-hint';   kh.textContent = def.kbd;
+    const nh = document.createElement('span'); nh.className = 'note-hint'; nh.textContent = def.note;
+    el.appendChild(kh); el.appendChild(nh);
+
+    bed.appendChild(el);
+    keyElems[def.midi] = el;
+  });
+
+  // Second pass: place black keys after the DOM has laid out the white keys
+  requestAnimationFrame(() => {
+    LAYOUT.filter(d => d.type === 'black').forEach(def => {
+      // Find the white key just to the left of this black key
+      // (the note a half-step below that is white)
+      const leftWhiteMidi = def.midi - 1;
+      const leftEl = keyElems[leftWhiteMidi];
+      if (!leftEl) return;
+
+      // Position: right edge of the left white key, offset back by half black-key width
+      const bedRect  = bed.getBoundingClientRect();
+      const leftRect = leftEl.getBoundingClientRect();
+      const leftPos  = leftRect.right - bedRect.left - 12 + 2;  // +2 aesthetic nudge
+
+      const el = document.createElement('div');
+      el.className    = 'bk';
+      el.dataset.midi  = def.midi;
+      el.style.left    = leftPos + 'px';
+
+      const kh = document.createElement('span'); kh.className = 'kb-hint';   kh.textContent = def.kbd;
+      const nh = document.createElement('span'); nh.className = 'note-hint'; nh.textContent = def.note.replace('#','♯');
+      el.appendChild(kh); el.appendChild(nh);
+
+      bed.appendChild(el);
+      keyElems[def.midi] = el;
+    });
+  });
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   WebSocket  — connects to the Python audio engine
+   ═══════════════════════════════════════════════════════════════ */
+
+let ws     = null;
+const dot  = document.getElementById('wsDot');
+
+function wsSend(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+}
+
+function wsConnect() {
+  ws = new WebSocket('ws://localhost:8765');
+
+  ws.addEventListener('open', () => {
+    dot.className = 'ws-dot ok';
+  });
+  ws.addEventListener('close', () => {
+    dot.className = 'ws-dot err';
+    setTimeout(wsConnect, 2500);
+  });
+  ws.addEventListener('error', () => { /* close fires next */ });
+}
+wsConnect();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTE STATE  — tracks which notes are down
+   ═══════════════════════════════════════════════════════════════ */
+
+const activeSet = new Set();   // set of MIDI note numbers currently on
+
+function noteOn(midi) {
+  if (!isPlayable) return;
+  if (activeSet.has(midi)) return;   // ignore held-key repeats
+  activeSet.add(midi);
+
+  const el = keyElems[midi];
+  if (el) el.classList.add('active');
+
+  wsSend({ type: 'note_on', id: midi, freq: midiToFreq(midi) });
+  updateDisplay();
+}
+
+function noteOff(midi) {
+  if (!activeSet.has(midi)) return;
+  activeSet.delete(midi);
+
+  const el = keyElems[midi];
+  if (el) el.classList.remove('active');
+
+  wsSend({ type: 'note_off', id: midi });
+  updateDisplay();
+}
+
+function releaseAllNotes() {
+  [...activeSet].forEach(m => noteOff(m));
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTE / CHORD DISPLAY  (LCD panel)
+   ═══════════════════════════════════════════════════════════════ */
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+// Interval names for two-note display
+const INTERVAL_NAMES = {
+  0:'Unison', 1:'m2', 2:'M2', 3:'m3', 4:'M3',
+  5:'P4', 6:'Tri-tone', 7:'P5', 8:'m6', 9:'M6', 10:'m7', 11:'M7'
+};
+
+// Chord shape → name mapping
+const CHORD_TYPES = [
+  { ints:[0,4,7],      name:'' },
+  { ints:[0,3,7],      name:'m' },
+  { ints:[0,4,7,10],   name:'7' },
+  { ints:[0,4,7,11],   name:'M7' },
+  { ints:[0,3,7,10],   name:'m7' },
+  { ints:[0,3,6],      name:'dim' },
+  { ints:[0,4,8],      name:'aug' },
+  { ints:[0,5,7],      name:'sus4' },
+  { ints:[0,2,7],      name:'sus2' },
+  { ints:[0,3,6,9],    name:'dim7' },
+  { ints:[0,4,8,10],   name:'aug7' },
+  { ints:[0,3,6,10],   name:'m7♭5' },
+  { ints:[0,4,6,10],   name:'7♭5' },
+];
+
+function detectChord(midis) {
+  if (midis.length === 0) return { lcd:'READY', sub:'—', isChord:false };
+  if (midis.length === 1) {
+    const n = midis[0] % 12;
+    return { lcd: NOTE_NAMES[n] + Math.floor(midis[0]/12 - 1), sub: 'Single Note', isChord:false };
+  }
+
+  const pcs   = [...new Set(midis.map(m => m % 12))].sort((a,b) => a-b);
+  const bass  = NOTE_NAMES[Math.min(...midis) % 12];
+
+  // Two notes → show interval
+  if (pcs.length === 2) {
+    const ivl = (pcs[1] - pcs[0] + 12) % 12;
+    const iname = INTERVAL_NAMES[ivl] || ivl + ' st';
+    return { lcd: NOTE_NAMES[pcs[0]] + ' + ' + NOTE_NAMES[pcs[1]], sub: iname, isChord:false };
+  }
+
+  // 3+ notes → try every chord type, every possible root (handles inversions)
+  for (const chord of CHORD_TYPES) {
+    if (chord.ints.length !== pcs.length) continue;
+    for (let r = 0; r < pcs.length; r++) {
+      const root = pcs[r];
+      const rel  = pcs.map(p => (p - root + 12) % 12).sort((a,b) => a-b);
+      if (rel.join() === chord.ints.join()) {
+        const rootName = NOTE_NAMES[root];
+        const full     = rootName + chord.name;
+        const sub      = (root !== (Math.min(...midis) % 12))
+                          ? rootName + chord.name + ' / ' + bass  // inversion
+                          : rootName + chord.name;
+        return { lcd: full, sub, isChord:true };
       }
     }
+  }
 
-    // Auto-advance from splash
-    setTimeout(() => changeScreen('menu-screen'), 3000);
+  // Unknown voicing — just list the pitch classes
+  return {
+    lcd: pcs.map(p => NOTE_NAMES[p]).join(' '),
+    sub: pcs.length + ' notes',
+    isChord: false
+  };
+}
 
-    // ── PIANO CORE LOGIC ──────────────────────────────────────────────────
-    const KEYS = [
-      { key: "W", type: "white" }, { key: "E", type: "white" },
-      { key: "R", type: "white" }, { key: "T", type: "white" },
-      { key: "Y", type: "white" }, { key: "U", type: "white" },
-      { key: "I", type: "white" },
-      { key: "3", type: "black", after: "W" },
-      { key: "4", type: "black", after: "E" },
-      { key: "6", type: "black", after: "T" },
-      { key: "7", type: "black", after: "Y" },
-      { key: "8", type: "black", after: "U" }
-    ];
+const lcdEl  = document.getElementById('lcd');
+const subEl  = document.getElementById('lcdSub');
 
-    const keyElements = {};
-    const keyBed = document.getElementById("keyBed");
-    const heldKeys = new Set();
+function updateDisplay() {
+  const info = detectChord([...activeSet]);
+  lcdEl.textContent  = info.lcd;
+  subEl.textContent  = info.sub;
+  lcdEl.className    = 'lcd' + (info.isChord ? ' chord' : '');
+}
 
-    // Render Keyboard
-    KEYS.filter(k => k.type === "white").forEach(def => {
-      const el = document.createElement("div");
-      el.className = "white-key";
-      el.innerHTML = `<span class="key-label">${def.key}</span>`;
-      keyBed.appendChild(el);
-      keyElements[def.key] = el;
-    });
 
-    requestAnimationFrame(() => {
-      KEYS.filter(k => k.type === "black").forEach(def => {
-        const anchor = keyElements[def.after];
-        const x = anchor.offsetLeft + anchor.offsetWidth - 21;
-        const el = document.createElement("div");
-        el.className = "black-key";
-        el.style.left = x + "px";
-        el.innerHTML = `<span class="key-label">${def.key}</span>`;
-        keyBed.appendChild(el);
-        keyElements[def.key] = el;
-      });
-    });
+/* ═══════════════════════════════════════════════════════════════
+   KEYBOARD INPUT
+   ═══════════════════════════════════════════════════════════════ */
 
-    // ── AUDIO ENGINE (WEBSOCKET) ──────────────────────────────────────────
-    let socket = null;
-    function initSocket() {
-      socket = new WebSocket("ws://localhost:8765");
-      socket.onopen = () => {
-        document.getElementById("stat-dot").classList.add("on");
-        document.getElementById("stat-text").textContent = "Engine Online";
-      };
-      socket.onclose = () => {
-        document.getElementById("stat-dot").classList.remove("on");
-        document.getElementById("stat-text").textContent = "Reconnecting...";
-        setTimeout(initSocket, 2000);
-      };
+const heldKeys = new Set();   // track held keys to suppress key-repeat
+
+document.addEventListener('keydown', e => {
+  // Arrow keys control pitch bend (handled separately below)
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); return; }
+
+  if (e.repeat) return;
+  const key = e.key.toLowerCase();
+  if (heldKeys.has(key)) return;
+  heldKeys.add(key);
+
+  const def = kbdMap[key];
+  if (def) noteOn(def.midi);
+});
+
+document.addEventListener('keyup', e => {
+  const key = e.key.toLowerCase();
+  heldKeys.delete(key);
+  const def = kbdMap[key];
+  if (def) noteOff(def.midi);
+});
+
+// Release all notes if window loses focus (prevents stuck notes)
+window.addEventListener('blur', releaseAllNotes);
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MOUSE + TOUCH on the keyboard
+   ═══════════════════════════════════════════════════════════════ */
+
+const bed = document.getElementById('keyBed');
+
+bed.addEventListener('mousedown', e => {
+  const el = e.target.closest('[data-midi]');
+  if (el) noteOn(+el.dataset.midi);
+});
+document.addEventListener('mouseup', () => {
+  // Release any keys that were pressed via mouse
+  [...activeSet].forEach(m => {
+    // Only release notes that have a corresponding DOM element (i.e., mouse-pressed ones)
+    const el = keyElems[m];
+    if (el && !heldKeys.has(el.dataset?.kbd?.toLowerCase())) {
+      noteOff(m);
     }
-    initSocket();
+  });
+});
 
-    function trigger(k) {
-      // FIX: Only play if the piano screen is active
-      if (currentScreen !== 'piano-screen') return;
+bed.addEventListener('touchstart', e => {
+  e.preventDefault();
+  Array.from(e.changedTouches).forEach(t => {
+    const el = document.elementFromPoint(t.clientX, t.clientY)?.closest('[data-midi]');
+    if (el) noteOn(+el.dataset.midi);
+  });
+}, { passive:false });
 
-      const key = k.toUpperCase();
-      const el = keyElements[key];
-      if (el && !heldKeys.has(key)) {
-        heldKeys.add(key);
-        el.classList.add("active");
-        if (socket?.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: "keypress", key }));
-        }
-      }
-    }
+bed.addEventListener('touchend', e => {
+  Array.from(e.changedTouches).forEach(t => {
+    const el = document.elementFromPoint(t.clientX, t.clientY)?.closest('[data-midi]');
+    if (el) noteOff(+el.dataset.midi);
+  });
+});
 
-    function release(k) {
-      const key = k.toUpperCase();
-      heldKeys.delete(key);
-      if (keyElements[key]) keyElements[key].classList.remove("active");
-    }
 
-    // Listeners
-    window.addEventListener("keydown", e => trigger(e.key));
-    window.addEventListener("keyup", e => release(e.key));
-  </script>
+/* ═══════════════════════════════════════════════════════════════
+   PITCH BEND  (arrow keys ↑ / ↓, max ±2 semitones)
+   ═══════════════════════════════════════════════════════════════ */
+
+let pitchBend = 0;        // current semitone offset (-2 … +2)
+const PITCH_MAX = 2;
+const handle = document.getElementById('pitchHandle');
+
+function updatePitchVisual() {
+  // Track height 110px, handle 36px → center at 37px → range ±37px
+  const center  = 37;
+  const travel  = 32;
+  const top     = center - (pitchBend / PITCH_MAX) * travel;
+  handle.style.top = top + 'px';
+}
+
+document.addEventListener('keydown', e => {
+  if (!isPlayable) return;
+  if (e.key === 'ArrowUp') {
+    pitchBend = Math.min(PITCH_MAX, pitchBend + 0.5);
+    updatePitchVisual();
+    wsSend({ type:'param', name:'pitch_bend', val:pitchBend });
+  }
+  if (e.key === 'ArrowDown') {
+    pitchBend = Math.max(-PITCH_MAX, pitchBend - 0.5);
+    updatePitchVisual();
+    wsSend({ type:'param', name:'pitch_bend', val:pitchBend });
+  }
+});
+
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    pitchBend = 0;
+    updatePitchVisual();
+    wsSend({ type:'param', name:'pitch_bend', val:0 });
+  }
+});
+
+
+/* ═══════════════════════════════════════════════════════════════
+   TUNE KNOB  (scroll wheel, ±2 semitones in 0.1 steps)
+   ═══════════════════════════════════════════════════════════════ */
+
+let tuneVal = 0;
+const TUNE_MAX = 2;
+const tuneKnob = document.getElementById('tuneKnob');
+
+tuneKnob.addEventListener('wheel', e => {
+  e.preventDefault();
+  tuneVal = Math.max(-TUNE_MAX, Math.min(TUNE_MAX, tuneVal - (e.deltaY > 0 ? 0.1 : -0.1)));
+  tuneVal = Math.round(tuneVal * 10) / 10;
+  // Rotate the indicator: 0 → 0°, ±2 → ±90°
+  tuneKnob.style.setProperty('--angle', (tuneVal * 45) + 'deg');
+  wsSend({ type:'param', name:'tune', val:tuneVal });
+}, { passive:false });
+
+
+/* ═══════════════════════════════════════════════════════════════
+   FX TOGGLES  — click LED header to enable / disable each effect
+   ═══════════════════════════════════════════════════════════════ */
+
+// State map: effect name → boolean
+const fxState = { tremolo:false, delay:false, reverb:false };
+
+function toggleFX(name) {
+  fxState[name] = !fxState[name];
+
+  document.getElementById('led-' + name).classList.toggle('on', fxState[name]);
+  document.getElementById('mod-' + name).classList.toggle('active', fxState[name]);
+
+  wsSend({ type:'param', name: name + '_on', val: fxState[name] });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   KNOB DRAG  — mouse-drag up/down to change value
+   ═══════════════════════════════════════════════════════════════ */
+
+document.querySelectorAll('.knob[data-param]').forEach(knob => {
+  const min    = parseFloat(knob.dataset.min);
+  const max    = parseFloat(knob.dataset.max);
+  let   val    = parseFloat(knob.dataset.val);
+  let   startY = 0;
+  let   startV = val;
+  let   active = false;
+
+  // Helper: map value to rotation angle (-135° … +135°)
+  const setAngle = v => {
+    const pct = (v - min) / (max - min);
+    knob.style.setProperty('--angle', (pct * 270 - 135) + 'deg');
+  };
+  setAngle(val);
+
+  knob.addEventListener('mousedown', e => {
+    // Only respond when the parent module is switched on
+    const mod = knob.closest('.module');
+    if (!mod.classList.contains('active')) return;
+
+    active  = true;
+    startY  = e.clientY;
+    startV  = val;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!active) return;
+    const delta = (startY - e.clientY) / 150 * (max - min);
+    val         = Math.max(min, Math.min(max, startV + delta));
+    setAngle(val);
+    wsSend({ type:'param', name: knob.dataset.param, val });
+  });
+
+  document.addEventListener('mouseup', () => { active = false; });
+});
+
+</script>
 </body>
 </html>
